@@ -5,14 +5,15 @@
 #include <cstdlib>
 //66.		Дана матрица весов дуг. Определить и вывести все циклы в орграфе, заданной длины х (вводится с клавиатуры)	Матрица инцидентности
 using namespace std;
-
+struct stack{
+	int id;
+	stack *pred;
+};
 class A{
 	protected:
 		ifstream file;
 		int count_v;
-		
     	vector < string > names;	
-		
 	public:	
 		A(string str){
 			file.open(str.c_str());
@@ -25,11 +26,15 @@ class A{
 		    }
 		    count_v = names.size();
 		}
+		~A(){
+			file.close();
+		}
 		virtual void show(){
 			for (int i=0;i<count_v;i++)
 				cout<<names[i]<<" ";
 			cout<<endl;
 		}
+
 		int getcv(){
 			return count_v;
 		}
@@ -56,10 +61,15 @@ class A{
 class B: public A{
 	private:
 		int count_r;
-		vector < vector<int> > v;
-		
+		vector <vector<int> > v;
+		bool flag;
+		stack *tek,*pr, *tmp,*start;
+		vector<int> mascolour;//0 white, 1 gray, 2 black
+		int lcycle;
 	public:
 		B(string str):A(str){
+			flag=1;
+			lcycle=0;
 			file>>str;
 		    while(!file.eof())
 			{
@@ -76,6 +86,10 @@ class B: public A{
 		    }
 		    count_r=v.size();
 		}
+		~B(){
+			
+		}
+		friend void counter(B* bb);
 		int getv(int a, int b){
 			return v[a][b];
 		}
@@ -83,53 +97,13 @@ class B: public A{
 			cout<<endl<<"-------------------------------------------------"<<endl;
 			for(int j=0;j<count_v;j++)//вывод
 			{
-    			string ts;
-    			if(v[0][j]>=0)cout<<" ";
 		    	for(int i=0;i<count_r;i++)
 		    	{	
 		    		int tv=v[i][j];
-					if( abs(tv)>99) ts=" ";
-					else if (abs(tv)>9) ts="  ";
-		    		else ts="   ";
-		    		if (tv<0)ts+=" ";
-		    		cout<<tv<<ts;	
+		    		cout<<tv<<"\t";
 		    	}	
 		    	cout<<endl;
 		    }
-		   /* int mas[count_r];
-
-		    for(int i=0;i<count_r;i++)
-		    {
-		    	for(int j=0;j<count_v;j++)
-				{
-					int tmp=v[j][i];
-					if(tmp<0){
-						if(tmp<-9)mas[j]=3;//отстут для 0
-						else mas[j]=2;
-					}					
-		    		
-		    	}
-			}
-		    for(int i=0;i<count_r;i++)
-		    {
-		    
-		    	for(int j=0;j<count_v;j++)
-		    	{
-		    		string ts="";
-		    		int tmp=v[j][i];
-		    		int sp=0;
-		    		if(tmp>0) sp=3;
-		    		//else if (tmp>9) sp=2;
-		    		else if(tmp<0)sp=1;
-		    		else sp=mas[j];
-		    		for	(int q=0;q < sp;q++)
-		    			ts+=" ";
-		    			cout<<ts<<tmp;
-		    		
-		    	}
-		    	cout<<endl;
-		    	
-		    }*/
 		    cout<<endl<<"-------------------------------------------------"<<endl;
 		}
 		int getcr(){
@@ -223,6 +197,7 @@ class B: public A{
 			for(int q=0;q<count_r;q++)
 			{
 				int tmp=v[q][i];
+				
 				if(tmp>0)
 				{
 					for(int w=0;w<count_r;w++)
@@ -230,7 +205,6 @@ class B: public A{
 						if(w==i)continue;
 						if(v[q][w]<0) {
 							r.push_back(w);	
-							cout<<w<<" ";
 							break;
 						}
 					}
@@ -240,33 +214,200 @@ class B: public A{
 			if(id+1>r.size())return -1;
 			return r[id];
 		}
-		void zad(int x){//циклы заданной длин
+		bool operator*(int q){
+			if(q<=0) return false;
+			for(int j=0;j<count_v;j++)//вывод
+				for(int i=0;i<count_r;i++)
+	    			v[i][j]*=q;	
 		
 		
+			return true;
 		}
+		void spsm(){
+			for(int i=0;i<count_v;i++)
+			{
+				cout<<getnamebyid(i)<<" ";
+				for (int j=0;;j++)
+				{
+					int ver=vertex( getnamebyid(i) , j );
+					if(ver<0) break;
+					cout<<ver<<" ";
+				}
+				cout<<endl;
+			}
+		}
+		int cycle_of_cycles(int l){
 			
-			
-			
+			for(int i=0;i<count_v;i++){
+				mascolour=vector <int>(count_v,0);
+				cycle(i,l);
+				mascolour.clear();
+				flag=1;
+				lcycle=0;
+				cout<<endl<<"--------------------------------";
+			}
+			mascolour.clear();
+			lcycle=0;
+			flag=1;
+			cout<<endl;
+		}
+		void cycle (int v_number, int l){
+			vector < vector<int> > vv;
+			vv=v;
+			if(flag){
+				tek=new stack;
+				tek->pred=NULL;
+				tek->id=v_number;
+				flag=0;
+				mascolour[v_number]=2;
+			}
+			else {
+				tmp=tek;
+				tek=new stack;
+				tek->pred=tmp;
+				tek->id=v_number;
+				mascolour[v_number]=1;
+			}
+			for(int i=0;i<count_r;i++){
+				int vrtx=vertex(getnamebyid(v_number),i);
+				if (vrtx<0) break;
+				else {
+					if(mascolour[vrtx]==0)
+					{
+						cycle(vrtx,l);	
+					}
+					else if(mascolour[vrtx]==2)
+					{
+						lcycle++;
+						tmp=tek;
+						while(tmp->pred!=NULL){
+							pr=tmp->pred;
+											lcycle++;
+							tmp=tmp->pred;
+						}
+						tmp=tek;
+						if(lcycle==l)
+						{
+							cout<<endl;
+							tmp=tek;
+							cout<<names[vrtx]<<"<-";
+							while(tmp->pred!=NULL){
+								cout<<names[tmp->id]<<"<-";
+								tmp=tmp->pred;
+							}		
+							cout<<names[vrtx]<<endl;
+						}
+						lcycle=0;
+					}		
+				}
+			}
+			mascolour[v_number]=0;
+			tmp=tek->pred;
+			delete tek;
+			tek=tmp;
+		}		
 };
-
+void counter(B* bb){
+	cout<<endl<<bb->count_v<<"  "<<bb->count_r<<endl;
+}
 
 int main(int argc, char** argv) {
-    string s="graph1.tgf";
-    cout<<s;
+	setlocale(LC_ALL, "Russian");
+	
+	
+	
+	int q=1;
+	string s="graph1.tgf";
+	cout<<"Какой граф 1,2,3?";
+	cin>>q;
+	if(q==2)s="graph2.tgf";
+	else if(q==3)s="graph3.tgf";
+    
     B* b=new B(s);
-    b->add_v("v8");
-    b->add_r("v1","v8", 20);   
     b->show();
-    cout<<endl<<"1"<<endl;
-    cout<<b->getv(16,0)<<endl<<"-------------------------------------------------"<<endl;
-    cout<<endl<<"2"<<endl;
-    b->del_v("v1");
-    cout<<endl<<"3"<<endl;
-    b->show();
-    b->A::show();
-       cout<<endl<<"-------------------------------------------------"<<endl;
-    cout<<b->getnamebyid(b->vertex("v2",1));
-       delete b;
-       
+    bool quit=0;
+
+    
+	while(!quit)
+    {
+    	int a;
+    	string n1,n2;
+		int m,n;
+    	cout<<"1:Показать граф "<<endl;
+    	cout<<"2:Добавить вершину "<<endl;
+    	cout<<"3:Добавить дугу "<<endl;
+    	cout<<"4:Удалить вершину "<<endl;   	
+    	cout<<"5:Удалить дугу "<<endl; 
+    	cout<<"6:Изменить вес дуги "<<endl;		   	
+    	cout<<"7:Изменить направление дуги "<<endl;
+    	cout<<"8:Вывести циклы заданной длины "<<endl;
+    	cout<<"9:Выйти "<<endl;
+    	cout<<"Выберете действие ";
+    	cin>>a;
+		switch(a){
+			case 1:{
+				b->show();
+				break;
+			}
+			case 2:{
+				string n;
+				cout<<"Введите название вершины ";
+				cin>>n;
+				b->add_v(n);
+				break;
+			}
+			case 3:{
+				
+				cout<<"Введите название 1 вершины ";
+				cin>>n1;
+				cout<<"Введите название 2 вершины ";
+				cin>>n2;
+				cout<<"Введите вес дуги ";
+				cin>>m;
+				b->add_r(n1,n2,m);
+				break;
+			}
+			case 4:{
+				cout<<"Введите имя вершины ";
+				cin>>n1;
+				b->del_v(n1);
+				break;
+			}
+			case 5:{
+				cout<<"Введите индекс дуги ";
+				cin>>m;
+				b->del_r(m);
+		
+				break;
+			}
+			case 6:{
+				cout<<"Введите индекс дуги ";
+				cin>>m;
+				cout<<"Введите новый вес дуги дуги ";
+				cin>>n;
+				b->ves_r(m,n);
+				break;
+			}
+			case 7:{
+				cout<<"Введите индекс дуги ";
+				cin>>m;
+				b->napr_r(m);
+				break;
+			}
+			case 8:{
+				cout<<"Введите длину цикла ";
+				cin>>m;
+				b->cycle_of_cycles(m);
+				break;
+			}
+			case 9:{
+				quit=1;
+				break;
+			}
+				
+		}
+	}
+	
+    delete b;
 	return 0;
 }
