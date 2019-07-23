@@ -252,8 +252,6 @@ class B: public A{
 			cout<<endl;
 		}
 		void cycle (int v_number, int l){
-			vector < vector<int> > vv;
-			vv=v;
 			if(flag){
 				tek=new stack;
 				tek->pred=NULL;
